@@ -19,7 +19,7 @@ CogOS is the layer underneath. Persistent workspaces any AI tool can plug into. 
 | **Plugging multiple agents into one kernel** | [cog-sandbox-mcp](https://github.com/myrgic/cog-sandbox-mcp): Python MCP bridge over kernel session/handoff routes |
 | **Seeing the kernel run real infrastructure** | [sites](https://github.com/myrgic/sites): monorepo where the kernel reconciles myrgic's own domain deployments |
 | **Researching EA/EFM or SRC** | [research](https://github.com/myrgic/research): theoretical foundations |
-| **Writing portable agent skills** | [skills](https://github.com/myrgic/skills): SKILL.md plugin format |
+| **Writing portable agent skills** | [plugins](https://github.com/myrgic/plugins): SKILL.md plugin format |
 | **Deploying to Kubernetes** | [charts](https://github.com/myrgic/charts): Helm and Docker Compose |
 
 ## Architecture
@@ -91,6 +91,17 @@ The CogOS kernel (`cogos`) is one Go binary that:
 
 Full feature surface: see the [cogos repo](https://github.com/myrgic/cogos).
 
+## What's on main (post-v0.9.0)
+
+The v0.9.0 release covers the kernel's core features. Since that release, work on `cogos/main` has added:
+
+- **Identity and binding primitives.** Kubernetes-style RBAC binding CRDs (RoleBinding, WorkspaceBinding, NodeBinding) with an IdentityProvider wired into the reconcile registry. The constellation README describes the L2 identity layer these implement.
+- **Substrate library extraction.** `pkg/substrate` is being pulled into a standalone library (ADR-100) so the reconciler framework can be used outside the kernel process.
+- **Operator-as-Reconcilable.** ADR-102 frames operators as first-class Reconcilable resources, governed by the same plan/apply/snapshot loop the kernel uses for workspaces and sites.
+- **ACP-shaped channel work.** The mod3 voice channel is gaining inbound audio routing (RTVI 1.3.0), WebSocket transport, and multi-identity harness binding. The goal is ACP-compatible session semantics so the dashboard can list and resume agent sessions.
+
+None of these are in a release yet. If you are cloning main today, expect the tree to be ahead of v0.9.0.
+
 ## Repositories
 
 ### Active
@@ -101,10 +112,11 @@ Full feature surface: see the [cogos repo](https://github.com/myrgic/cogos).
 | [**mod3**](https://github.com/myrgic/mod3) | Voice channel. Multi-model TTS (Kokoro, Voxtral, Chatterbox, Spark) with queue-aware output, barge-in detection, turn-taking. MCP server. | Python |
 | [**cog-sandbox-mcp**](https://github.com/myrgic/cog-sandbox-mcp) | MCP bridge that lets multiple agent sessions (Claude Code, Cursor, custom) share one kernel. HTTP streamable transport, 12 `cogos_*` tools layered over the kernel's session and handoff routes. | Python |
 | [**constellation**](https://github.com/myrgic/constellation) | L1 trust-node protocol. Git-backed hash-chained event ledger, ECDSA P-256 node identity, signed heartbeats, EMA-weighted peer trust. The kernel's `ConstellationBridge` seam consumes this. | Go |
-| [**skills**](https://github.com/myrgic/skills) | Portable skill definitions (SKILL.md) for Claude Code and compatible agents. | Markdown |
+| [**plugins**](https://github.com/myrgic/plugins) | Portable skill definitions (SKILL.md) for Claude Code and compatible agents. | Markdown |
 | [**research**](https://github.com/myrgic/research) | Theoretical foundations: EA/EFM thesis, LoRO framework, SRC mathematics and cross-domain instantiations. The grounding layer for the CogOps discipline. | Python |
 | [**charts**](https://github.com/myrgic/charts) | Helm charts for deploying CogOS nodes to Kubernetes. | Helm |
 | [**sites**](https://github.com/myrgic/sites) | Monorepo declaring myrgic's own domain deployments. Per-app `site.yaml` specs reconciled by the kernel's `SiteProvider`. The framework running the lab. | YAML / HTML |
+| [**mlx-lm**](https://github.com/myrgic/mlx-lm) | Fork of ml-explore/mlx-lm. Adds `BlockedKVCache`, a block-level KV cache with a content-addressed hash chain, for inference-side experiments related to the cogos substrate. | Python |
 
 *Auto-managed deploy targets (do not commit by hand — produced by the SiteProvider): `myrgic.github.io`, `myrgic.dev`, `myrgic.ai`, `myrgic.net`, `myrgic.org`.*
 
