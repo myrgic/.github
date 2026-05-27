@@ -1,6 +1,6 @@
 # Myrgic Labs
 
-AI infrastructure built on substrate-mediated cognition. We treat memory, retrieval, and inference as substrate properties — externalized from the model, content-addressed, shared across whatever AI tools touch the same workspace.
+AI infrastructure built on substrate-mediated cognition. We treat memory, retrieval, and inference as substrate properties: externalized from the model, content-addressed, and shared across whatever AI tools touch the same workspace.
 
 Brand and longer-form writing: [myrgic.com](https://myrgic.com/).
 
@@ -18,7 +18,7 @@ CogOS is the layer underneath. Persistent workspaces any AI tool can plug into. 
 | **Building voice or modality features** | [mod3](https://github.com/myrgic/mod3): TTS, audio queue, turn-taking |
 | **Plugging multiple agents into one kernel** | [cog-sandbox-mcp](https://github.com/myrgic/cog-sandbox-mcp): Python MCP bridge over kernel session/handoff routes |
 | **Seeing the kernel run real infrastructure** | [sites](https://github.com/myrgic/sites): monorepo where the kernel reconciles myrgic's own domain deployments |
-| **Researching EA/EFM or SRC** | [research](https://github.com/myrgic/research): theoretical foundations |
+| **Understanding the why behind the architecture** | [research](https://github.com/myrgic/research): design rationales and theoretical foundations |
 | **Writing portable agent skills** | [plugins](https://github.com/myrgic/plugins): SKILL.md plugin format |
 | **Deploying to Kubernetes** | [charts](https://github.com/myrgic/charts): Helm and Docker Compose |
 
@@ -73,7 +73,7 @@ The result is a topology where personal context lives where it belongs, organiza
 
 ## The lab runs on its own kernel
 
-This org's public sites are deployed through the same kernel it publishes. [**myrgic/sites**](https://github.com/myrgic/sites) is a monorepo declaring five domain deployments — myrgic.com (canonical) plus four redirects (.dev / .ai / .net / .org). Each is a per-app `site.yaml` spec consumed by the kernel's `SiteProvider`, a `Reconcilable` provider that diffs declared state against live state in the deploy-target repos, plans, and applies via `cogos reconcile site`. First strategy is `GHPagesStrategy`; the contract supports gitlab-pages, k8s ingress, S3, self-hosted rsync as future implementations.
+This org's public sites are deployed through the same kernel it publishes. [**myrgic/sites**](https://github.com/myrgic/sites) is a monorepo declaring five domain deployments: myrgic.com (canonical) plus four redirects (.dev / .ai / .net / .org). Each is a per-app `site.yaml` spec consumed by the kernel's `SiteProvider`, a `Reconcilable` provider that diffs declared state against live state in the deploy-target repos, plans, and applies via `cogos reconcile site`. First strategy is `GHPagesStrategy`; the contract supports gitlab-pages, k8s ingress, S3, self-hosted rsync as future implementations.
 
 If you want to see the framework doing real work, look there. Same plan/apply/state shape as Terraform or ArgoCD, executed through the kernel CLI rather than a separate operator.
 
@@ -91,16 +91,10 @@ The CogOS kernel (`cogos`) is one Go binary that:
 
 Full feature surface: see the [cogos repo](https://github.com/myrgic/cogos).
 
-## What's on main (post-v0.9.0)
+## Releases
 
-The v0.9.0 release covers the kernel's core features. Since that release, work on `cogos/main` has added:
+Latest: **v0.13.0**. The kernel ships frequent minor releases; the [Releases page](https://github.com/myrgic/cogos/releases) is the canonical record (notes auto-generated from PR titles since the previous tag). Recent releases have added identity and RBAC-binding primitives (RoleBinding, WorkspaceBinding, NodeBinding, with an IdentityProvider wired into the reconcile registry), cross-node transport over a Syncthing-derived block-exchange protocol, extraction of the reconciler framework toward a standalone `pkg/substrate` library, and a decision-lineage projection surfaced through `cogos spine`. `main` runs ahead of the latest tag.
 
-- **Identity and binding primitives.** Kubernetes-style RBAC binding CRDs (RoleBinding, WorkspaceBinding, NodeBinding) with an IdentityProvider wired into the reconcile registry. The constellation README describes the L2 identity layer these implement.
-- **Substrate library extraction.** `pkg/substrate` is being pulled into a standalone library (ADR-100) so the reconciler framework can be used outside the kernel process.
-- **Operator-as-Reconcilable.** ADR-102 frames operators as first-class Reconcilable resources, governed by the same plan/apply/snapshot loop the kernel uses for workspaces and sites.
-- **ACP-shaped channel work.** The mod3 voice channel is gaining inbound audio routing (RTVI 1.3.0), WebSocket transport, and multi-identity harness binding. The goal is ACP-compatible session semantics so the dashboard can list and resume agent sessions.
-
-None of these are in a release yet. If you are cloning main today, expect the tree to be ahead of v0.9.0.
 
 ## Repositories
 
@@ -113,12 +107,12 @@ None of these are in a release yet. If you are cloning main today, expect the tr
 | [**cog-sandbox-mcp**](https://github.com/myrgic/cog-sandbox-mcp) | MCP bridge that lets multiple agent sessions (Claude Code, Cursor, custom) share one kernel. HTTP streamable transport, 12 `cogos_*` tools layered over the kernel's session and handoff routes. | Python |
 | [**constellation**](https://github.com/myrgic/constellation) | L1 trust-node protocol. Git-backed hash-chained event ledger, ECDSA P-256 node identity, signed heartbeats, EMA-weighted peer trust. The kernel's `ConstellationBridge` seam consumes this. | Go |
 | [**plugins**](https://github.com/myrgic/plugins) | Portable skill definitions (SKILL.md) for Claude Code and compatible agents. | Markdown |
-| [**research**](https://github.com/myrgic/research) | Theoretical foundations: EA/EFM thesis, LoRO framework, SRC mathematics and cross-domain instantiations. The grounding layer for the CogOps discipline. | Python |
+| [**research**](https://github.com/myrgic/research) | Design rationales and the theoretical foundations behind the kernel's architecture, plus the training pipeline. | Python |
 | [**charts**](https://github.com/myrgic/charts) | Helm charts for deploying CogOS nodes to Kubernetes. | Helm |
 | [**sites**](https://github.com/myrgic/sites) | Monorepo declaring myrgic's own domain deployments. Per-app `site.yaml` specs reconciled by the kernel's `SiteProvider`. The framework running the lab. | YAML / HTML |
 | [**mlx-lm**](https://github.com/myrgic/mlx-lm) | Fork of ml-explore/mlx-lm. Adds `BlockedKVCache`, a block-level KV cache with a content-addressed hash chain, for inference-side experiments related to the cogos substrate. | Python |
 
-*Auto-managed deploy targets (do not commit by hand — produced by the SiteProvider): `myrgic.github.io`, `myrgic.dev`, `myrgic.ai`, `myrgic.net`, `myrgic.org`.*
+*Auto-managed deploy targets (do not commit by hand; produced by the SiteProvider): `myrgic.github.io`, `myrgic.dev`, `myrgic.ai`, `myrgic.net`, `myrgic.org`.*
 
 ### Archived
 
