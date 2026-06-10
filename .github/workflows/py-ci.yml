@@ -28,7 +28,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
@@ -44,22 +44,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
           cache: pip
-      - run: pip install -r requirements.txt pytest 2>/dev/null || true
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
       - run: ${{ inputs.test-command }}
 
   smoke:
     if: inputs.smoke-test != ''
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
           cache: pip
-      - run: pip install -r requirements.txt 2>/dev/null || true
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       - run: ${{ inputs.smoke-test }}
