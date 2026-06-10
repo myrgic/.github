@@ -1,0 +1,69 @@
+name: Python CI
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: >
+          A single Python version string or a JSON array of versions for a matrix
+          build (e.g. '"3.12"' or '["3.11","3.12"]').  Defaults to 3.12 (single).
+        required: false
+        type: string
+        default: '["3.12"]'
+      test-paths:
+        description: >
+          Space-separated list of paths passed to pytest.  Defaults to 'tests/'.
+        required: false
+        type: string
+        default: 'tests/'
+      lint-paths:
+        description: >
+          Space-separated list of paths passed to ruff check / ruff format.
+          Defaults to '.' (repo root).
+        required: false
+        type: string
+        default: '.'
+      install-command:
+        description: >
+          Optional shell command run after checkout to install project dependencies
+          (e.g. 'pip install -e ".[dev]"').  When omitted, only ruff and pytest
+          are installed.
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ fromJSON(inputs.python-version)[0] }}
+          cache: pip
+      - name: Install ruff
+        run: pip install ruff
+      - name: ruff check
+        run: ruff check ${{ inputs.lint-paths }}
+      - name: ruff format (check)
+        run: ruff format --check ${{ inputs.lint-paths }}
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJSON(inputs.python-version) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install project dependencies
+        if: inputs.install-command != ''
+        run: ${{ inputs.install-command }}
+      - name: Install pytest
+        run: pip install pytest
+      - name: Run tests
+        run: pytest ${{ inputs.test-paths }}
