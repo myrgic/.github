@@ -1,6 +1,8 @@
 # Myrgic Labs
 
-AI infrastructure built on substrate-mediated cognition. We treat memory, retrieval, and inference as substrate properties: externalized from the model, content-addressed, and shared across whatever AI tools touch the same workspace.
+**Distilling distinction, from datacenter to desktop.**
+
+Myrgic Labs builds local-first AI infrastructure: the memory, retrieval, and inference that today live in someone else's cloud, running instead on machines you own. CogOS is the substrate that makes it work.
 
 Brand and longer-form writing: [myrgic.com](https://myrgic.com/).
 
