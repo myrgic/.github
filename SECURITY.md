@@ -7,7 +7,7 @@ If you discover a security vulnerability in any myrgic project, please report it
 Please include:
 - Description of the vulnerability
 - Steps to reproduce
-- Affected component (cogos, mod3, constellation, etc.)
+- The affected repository and component
 
 We will acknowledge receipt within 48 hours and provide an initial assessment within 7 days.
 
