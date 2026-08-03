@@ -95,7 +95,7 @@ Full feature surface: see the [cogos repo](https://github.com/myrgic/cogos).
 
 ## Releases
 
-Latest: **v0.13.0**. The kernel ships frequent minor releases; the [Releases page](https://github.com/myrgic/cogos/releases) is the canonical record (notes auto-generated from PR titles since the previous tag). Recent releases have added identity and RBAC-binding primitives (RoleBinding, WorkspaceBinding, NodeBinding, with an IdentityProvider wired into the reconcile registry), cross-node transport over a Syncthing-derived block-exchange protocol, extraction of the reconciler framework toward a standalone `pkg/substrate` library, and a decision-lineage projection surfaced through `cogos spine`. `main` runs ahead of the latest tag.
+The kernel ships frequent minor releases. The [Releases page](https://github.com/myrgic/cogos/releases) is the canonical record for the current version and full notes, auto-generated from PR titles since the previous tag.
 
 
 ## Repositories
