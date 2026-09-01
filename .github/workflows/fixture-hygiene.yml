@@ -1,0 +1,126 @@
+name: Fixture Hygiene
+
+# Reusable gate for test fixtures captured from a LIVE machine.
+#
+# WHY THIS IS AN ORG-LEVEL MODULE
+# --------------------------------
+# Any repo that records real agent/CLI traffic into testdata inherits the same
+# hazard: a capture embeds whatever the capturing workstation held at the time —
+# hook payloads, MCP/plugin inventories, home-directory paths, socket paths,
+# private board content. myrgic/cogos shipped exactly that to a PUBLIC repo in
+# PR #588, behind a substring-denylist redaction whose commit message and README
+# both CLAIMED completeness and were believed for three days.
+#
+# The transferable lesson, and the reason this is a shared workflow rather than
+# one repo's script: a DENYLIST redaction cannot be verified, so it gets trusted
+# instead of checked. An ALLOWLIST synthesis can be verified, and this workflow
+# is what performs the check mechanically on every PR.
+#
+# USAGE (caller repo):
+#
+#   jobs:
+#     fixture-hygiene:
+#       uses: myrgic/.github/.github/workflows/fixture-hygiene.yml@main
+#       with:
+#         sanitizer: internal/acp/testdata/sanitize_fixture.py
+#
+# A repo with no sanitizer of its own can instead point `patterns-only: true`
+# at a glob and get the forbidden-pattern scan with no synthesis step.
+
+on:
+  workflow_call:
+    inputs:
+      sanitizer:
+        description: >-
+          Path to a sanitizer exposing `--verify` (exit non-zero on violation).
+          Leave empty to run the built-in pattern scan only.
+        required: false
+        type: string
+        default: ''
+      fixture-glob:
+        description: Glob scanned by the built-in pattern check.
+        required: false
+        type: string
+        default: '**/testdata/**'
+      python-version:
+        required: false
+        type: string
+        default: '3.12'
+      extra-patterns:
+        description: >-
+          Newline-separated extra regexes to treat as forbidden, for
+          repo-specific identifiers (project codenames, internal hostnames).
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      # Preferred path: the repo owns a sanitizer that knows its own fixture
+      # schema and can rebuild it from an allowlist. --verify is the
+      # post-condition; the sanitizer decides what "clean" means structurally.
+      - name: Repo sanitizer --verify
+        if: inputs.sanitizer != ''
+        run: python3 "${{ inputs.sanitizer }}" --verify
+
+      # Fallback / defense in depth: a schema-agnostic scan for the categories
+      # that leak most often. This cannot prove a fixture is clean — only that
+      # it is not obviously dirty — and says so rather than implying otherwise.
+      - name: Built-in pattern scan
+        env:
+          FIXTURE_GLOB: ${{ inputs.fixture-glob }}
+          EXTRA_PATTERNS: ${{ inputs.extra-patterns }}
+        run: |
+          python3 - <<'PY'
+          import os, re, sys, pathlib
+
+          PATTERNS = [
+              (r"/Users/(?!fixture|runner)", "home-directory path (macOS)"),
+              (r"/home/(?!runner|fixture)", "home-directory path (Linux)"),
+              (r"C:\\\\Users\\\\(?!fixture)", "home-directory path (Windows)"),
+              (r"/tmp/[a-z-]*socks?/", "IPC socket path"),
+              (r"\.claude/plugins/cache", "local plugin cache path"),
+              (r"mcp__claude_ai_", "operator MCP integration inventory"),
+              (r"ssh-rsa |BEGIN [A-Z ]*PRIVATE KEY", "key material"),
+              (r"xox[baprs]-|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}", "credential token"),
+          ]
+          for extra in (os.environ.get("EXTRA_PATTERNS") or "").splitlines():
+              if extra.strip():
+                  PATTERNS.append((extra.strip(), "repo-specific forbidden pattern"))
+
+          glob = os.environ.get("FIXTURE_GLOB") or "**/testdata/**"
+          root = pathlib.Path(".")
+          violations = []
+          scanned = 0
+          for p in root.glob(glob):
+              if not p.is_file() or ".git/" in str(p):
+                  continue
+              try:
+                  body = p.read_text(errors="ignore")
+              except Exception:
+                  continue
+              scanned += 1
+              for rx, label in PATTERNS:
+                  m = re.search(rx, body)
+                  if m:
+                      ctx = body[max(0, m.start()-40):m.start()+60].replace("\n", " ")
+                      violations.append(f"{p}: {label}: …{ctx}…")
+                      break
+
+          if violations:
+              print("FIXTURE HYGIENE FAILED", file=sys.stderr)
+              for v in violations[:40]:
+                  print("  " + v, file=sys.stderr)
+              sys.exit(1)
+          print(f"pattern scan clean ({scanned} files, {len(PATTERNS)} patterns)")
+          print("NOTE: a clean scan is not proof of sanitization — only an "
+                "allowlist-rebuilding sanitizer can establish that.")
+          PY
