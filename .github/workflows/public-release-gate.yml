@@ -1,0 +1,74 @@
+name: Public Release Gate
+
+# Enforces a repo's .cogpublic content guards. The EXECUTOR lives here; the
+# POLICY lives in each repo's own .cogpublic. That split is deliberate: what
+# counts as private is repo-specific, but the machinery that checks it should
+# have exactly one implementation.
+#
+# WHY THIS EXISTS
+# ---------------
+# myrgic/cogos has carried a .cogpublic manifest since 2026-04-14 declaring
+# content guards (home paths, personal identifiers, token patterns). Its header
+# credited a `cog plan upstream` command with enforcing them. That command was
+# never implemented — no hook, no CI step, no code reference in any repo. The
+# guards were DECLARED and never EXECUTED for four and a half months, during
+# which three instances of the exact declared patterns shipped to public repos:
+# mod3 #138/#142, cogos #588, mod3 #146.
+#
+# A declared-but-unexecuted guard is worse than no guard: it reads like coverage
+# during review, so nobody looks twice. This workflow is the executor, and it is
+# centralized so that "the gate exists" and "the gate runs" cannot drift apart
+# per repo.
+#
+# USAGE (caller repo):
+#
+#   jobs:
+#     public-release-gate:
+#       uses: myrgic/.github/.github/workflows/public-release-gate.yml@main
+#
+# The caller needs a .cogpublic at its root. Nothing else.
+#
+# SUPERSEDES fixture-hygiene.yml, which solved a narrower version of this
+# problem (captured test fixtures only) before .cogpublic was rediscovered.
+
+on:
+  workflow_call:
+    inputs:
+      config:
+        description: Path to the guard manifest in the caller repo.
+        required: false
+        type: string
+        default: .cogpublic
+      python-version:
+        required: false
+        type: string
+        default: '3.12'
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout caller
+        uses: actions/checkout@v7
+
+      - name: Checkout guard executor
+        uses: actions/checkout@v7
+        with:
+          repository: myrgic/.github
+          path: .release-gate
+          ref: main
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      # Self-test FIRST, always. If the ruleset stops parsing — a renamed key,
+      # a YAML edit, a truncated file — this fails loudly instead of the scan
+      # silently succeeding against zero patterns and reporting green. A guard
+      # that cannot run must never look like a guard that passed, which is the
+      # entire lesson of the incident that produced this workflow.
+      - name: Self-test the guard
+        run: python3 .release-gate/scripts/cogpublic-guard.py --self-test
+
+      - name: Scan for guarded content
+        run: python3 .release-gate/scripts/cogpublic-guard.py
